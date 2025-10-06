@@ -1,4 +1,5 @@
 
+// Progressive Rummy Game - Updated for Azure deployment
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card as UICard, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
