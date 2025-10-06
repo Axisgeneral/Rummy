@@ -1001,6 +1001,32 @@ export default function ProgressiveRummy() {
           bestMeldCards = currentBestRunCards;
         }
 
+        // ROUND REQUIREMENT CHECK: Only use meld types allowed in this round
+        if (bestMeld) {
+          const requirements = {
+            1: { sets: 2, runs: 0 },  // Round 1: Only sets allowed
+            2: { sets: 1, runs: 1 },  // Round 2: Sets and runs allowed
+            3: { sets: 0, runs: 2 },  // Round 3: Only runs allowed
+            4: { sets: 3, runs: 0 },  // Round 4: Only sets allowed
+            5: { sets: 2, runs: 1 },  // Round 5: Sets and runs allowed
+            6: { sets: 1, runs: 2 },  // Round 6: Sets and runs allowed
+            7: { sets: 0, runs: 3 }   // Round 7: Only runs allowed
+          };
+          
+          const roundReq = requirements[newGame.round];
+          const meldIsSet = isValidSet(bestMeld);
+          const meldIsRun = isValidRun(bestMeld);
+          
+          // Skip this meld if it's not allowed in the current round
+          if ((meldIsSet && roundReq.sets === 0) || (meldIsRun && roundReq.runs === 0)) {
+            console.log(`AI skipping ${meldIsSet ? 'SET' : 'RUN'} meld - not allowed in Round ${newGame.round}`);
+            bestMeld = null;
+            bestMeldCards = [];
+          } else if (bestMeld) {
+            console.log(`AI creating ${meldIsSet ? 'SET' : 'RUN'} meld for Round ${newGame.round}: ${bestMeld.map(c => c.rank + c.suit).join(', ')}`);
+          }
+        }
+
         if (bestMeld) {
           iterationMelds.push(bestMeld);
           // Remove used cards from temp hand
@@ -1318,33 +1344,33 @@ export default function ProgressiveRummy() {
             <div className={`bg-gradient-to-br ${currentTheme.table} rounded-xl p-4 md:p-6 shadow-2xl`}>
               <div className="flex flex-row justify-center items-start gap-6 md:gap-8">
                 <div className="flex flex-col items-center">
-                  <Button
-                    onClick={drawFromStock}
-                    disabled={game.phase !== 'draw' || game.currentPlayer !== 0}
-                    className="mb-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-sm px-4 py-2 whitespace-nowrap"
-                  >
-                    Draw Stock
-                  </Button>
                   <div className="relative">
                     <Card isFaceDown theme={currentTheme} />
                   </div>
                   <div className="text-white text-sm mt-2 font-semibold">{game.deck.length} cards</div>
+                  <Button
+                    onClick={drawFromStock}
+                    disabled={game.phase !== 'draw' || game.currentPlayer !== 0}
+                    className="mt-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-50 text-sm px-4 py-2 whitespace-nowrap"
+                  >
+                    Draw Stock
+                  </Button>
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <Button
-                    onClick={drawFromDiscard}
-                    disabled={game.phase !== 'draw' || game.currentPlayer !== 0 || game.discard.length === 0}
-                    className="mb-2 bg-purple-700 hover:bg-purple-600 disabled:opacity-50 text-sm px-4 py-2 whitespace-nowrap"
-                  >
-                    Draw Discard
-                  </Button>
                   <div className="relative">
                     {game.discard.length > 0 && (
                       <Card rank={game.discard[game.discard.length - 1].rank} suit={game.discard[game.discard.length - 1].suit} theme={currentTheme} />
                     )}
                     <div className="text-white text-sm mt-2 font-semibold">{game.discard.length} cards</div>
                   </div>
+                  <Button
+                    onClick={drawFromDiscard}
+                    disabled={game.phase !== 'draw' || game.currentPlayer !== 0 || game.discard.length === 0}
+                    className="mt-2 bg-purple-700 hover:bg-purple-600 disabled:opacity-50 text-sm px-4 py-2 whitespace-nowrap"
+                  >
+                    Draw Discard
+                  </Button>
                   <div className="flex gap-2 mt-2">
                     <Button
                       onClick={() => setShowDiscard(true)}

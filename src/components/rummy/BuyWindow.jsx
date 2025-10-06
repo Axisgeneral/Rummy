@@ -15,8 +15,17 @@ export default function BuyWindow({
   onSkip,
   theme,
   showTimer = true,
-  isOnTurnBuy = false
+  isOnTurnBuy = false,
+  allowAutoSkip = true
 }) {
+  console.log('BuyWindow rendered with props:', {
+    currentBuyerName,
+    isPlayerTurn,
+    timeLeft,
+    showTimer,
+    isOnTurnBuy,
+    allowAutoSkip
+  });
   const [countdown, setCountdown] = useState(timeLeft);
   const [selectedDiscardIndex, setSelectedDiscardIndex] = useState(null);
   const [selectedTargetCard, setSelectedTargetCard] = useState(null);
@@ -28,10 +37,36 @@ export default function BuyWindow({
   }, [timeLeft]);
 
   useEffect(() => {
-    if (!showTimer || countdown <= 0) {
-      if (countdown <= 0) onSkip();
+    console.log('BuyWindow timer useEffect triggered:', { 
+      showTimer, 
+      countdown, 
+      isPlayerTurn,
+      currentBuyerName,
+      allowAutoSkip 
+    });
+    
+    // CRITICAL: For human players, NEVER start any timer logic
+    if (currentBuyerName === "You" || isPlayerTurn || !allowAutoSkip) {
+      console.log('HUMAN PLAYER DETECTED - COMPLETELY DISABLING TIMER LOGIC');
       return;
     }
+    
+    // Only AI players get timer functionality
+    if (!showTimer) {
+      console.log('AI player but no timer enabled - skipping timer logic');
+      return;
+    }
+    
+    console.log('AI PLAYER - Starting timer logic, countdown:', countdown);
+    
+    if (countdown <= 0) {
+      console.log('AI Timer expired, calling onSkip');
+      console.trace('onSkip call from timer expiration');
+      onSkip();
+      return;
+    }
+    
+    console.log('Starting timer countdown for AI player');
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -41,10 +76,11 @@ export default function BuyWindow({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [countdown, onSkip, showTimer]);
+  }, [countdown, onSkip, showTimer, isPlayerTurn, currentBuyerName, allowAutoSkip]);
 
   const handleSkipClick = () => {
-    console.log('Skip buy button clicked');
+    console.log('Skip buy button clicked by user');
+    console.trace('onSkip call from manual button click');
     onSkip();
   };
 
@@ -121,11 +157,18 @@ export default function BuyWindow({
                       <div
                         key={index}
                         onClick={() => handleDiscardCardClick(index, card)}
-                        className="cursor-pointer transition-all hover:scale-105"
+                        className="cursor-pointer transition-all hover:scale-105 relative"
                       >
                         <Card rank={card.rank} suit={card.suit} theme={theme} />
                         {index < discardPile.length - 1 && (
-                          <p className="text-xs text-center text-gray-600 mt-1 font-semibold">+{discardPile.length - 1 - index} more</p>
+                          <div className="text-xs text-center text-blue-600 mt-1 font-bold bg-blue-100 rounded px-1">
+                            +{discardPile.length - 1 - index} cards
+                          </div>
+                        )}
+                        {index === discardPile.length - 1 && (
+                          <div className="text-xs text-center text-green-600 mt-1 font-bold bg-green-100 rounded px-1">
+                            1 card only
+                          </div>
                         )}
                       </div>
                     ))}
@@ -193,9 +236,23 @@ export default function BuyWindow({
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-green-700 mt-2">
-                    You'll also receive {cardsFromDiscard.length - 1} other card(s) that go to your hand
-                  </p>
+                  {cardsFromDiscard.length > 1 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-green-700 mb-2">
+                        You'll also receive these {cardsFromDiscard.length - 1} card(s) in your hand:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {cardsFromDiscard.slice(1).map((card, idx) => (
+                          <Card 
+                            key={idx}
+                            rank={card.rank} 
+                            suit={card.suit} 
+                            theme={theme}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-4">
